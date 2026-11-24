@@ -224,6 +224,25 @@ for (let i = 0; i < 3; i++) {
 }
 step("INPUT_UI", () => JSON.stringify({ green: greenSeen, red: redSeen, answerCard: answerSeen, ctxMeta: ctxMetaSeen, coverage: coverageText }));
 
+/* ---- 不知道选项：记为答错、显示正确答案、可正常评分 ---- */
+step("DONT_KNOW", () => {
+  doc.querySelector('[data-route="review"]').click();
+  const endBtn2 = doc.querySelector('[data-action="end-session"]');
+  if (endBtn2) endBtn2.click();
+  click('[data-action="start-session"][data-mode="passive"]');
+  const btn = doc.querySelector('[data-action="dont-know"]');
+  if (!btn) throw new Error("dont-know 按钮未渲染");
+  btn.click();
+  const card = doc.getElementById("review-card");
+  const banner = doc.querySelector(".feedback-banner");
+  const title = banner && banner.querySelector("strong") ? banner.querySelector("strong").textContent : "";
+  const wrongClass = Boolean(card && card.className.includes("wrong-answer"));
+  const answerShown = Boolean(banner && banner.textContent.includes("正确答案"));
+  click('[data-action="rate-answer"][data-rating="0"]');
+  const advanced = doc.querySelector('[data-action="dont-know"]') !== null && doc.getElementById("review-card");
+  return JSON.stringify({ title, wrongClass, answerShown, advanced: Boolean(advanced) });
+});
+
 /* ---- 导入备份 / 恢复进度（Store 级）：导出 → 重置 → 导入 → 进度恢复 ---- */
 step("IMPORT_BACKUP", () => {
   const store = Store();

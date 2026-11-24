@@ -493,7 +493,7 @@
         </article>
         ${session.phase === "feedback" && !session.correct ? renderAnswerCard(word, question) : ""}
       </div>
-      <div class="session-bottom">${session.phase === "question" ? '<button class="text-button full-width" type="button" data-action="skip-card">稍后再练 · 跳过此卡</button>' : renderRatingPanel(word)}</div>`;
+      <div class="session-bottom">${session.phase === "question" ? '<button class="dont-know-button full-width" type="button" data-action="dont-know">不知道这个词 · 记为答错并查看答案</button><button class="text-button full-width" type="button" data-action="skip-card">稍后再练 · 跳过此卡</button>' : renderRatingPanel(word)}</div>`;
   }
 
   function renderQuestionBody(word, question) {
@@ -545,9 +545,12 @@
 
   function renderFeedback(word, question) {
     const correct = ui.session.correct;
-    let detail = correct ? "回答正确。" : `正确答案：${question.correctAnswer || word.word}`;
+    const dontKnow = Boolean(ui.session.dontKnow);
+    const answer = question.correctAnswer || word.word;
+    let detail = correct ? "回答正确。" : dontKnow ? `已标记「不知道」，下次会尽快重现。正确答案：${answer}` : `正确答案：${answer}`;
     if (question.type === "sentence" && correct) detail = "句子已包含目标词且长度达标。建议再检查语法与搭配。";
-    return `<div class="feedback-banner ${correct ? "good" : "bad"}">${icon(correct ? "check" : "wrong")}<div><strong>${correct ? "回答正确" : "需要再巩固"}</strong><p>${e(detail)}</p></div></div>`;
+    const title = correct ? "回答正确" : dontKnow ? "标记为不知道" : "需要再巩固";
+    return `<div class="feedback-banner ${correct ? "good" : "bad"}">${icon(correct ? "check" : "wrong")}<div><strong>${title}</strong><p>${e(detail)}</p></div></div>`;
   }
 
   /** 答错时，在词卡下方另起一块“正确答案”词框。 */
@@ -622,6 +625,21 @@
     render(true);
   }
 
+  function markDontKnow() {
+    const session = ui.session;
+    if (!session || session.phase !== "question") return;
+    const question = getQuestion();
+    session.userAnswer = "";
+    session.sentenceAnswer = "";
+    session.selected = null;
+    session.correct = false;
+    session.dontKnow = true;
+    session.phase = "feedback";
+    session.results.wrong += 1;
+    if (["maintain", "sentence"].includes(question.type)) toast("产出题记为失败，该词将回炉输入线。");
+    render(true);
+  }
+
   function sentenceContainsWord(sentence, word) {
     const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return new RegExp("(^|[^a-zA-Z])" + escaped + "([^a-zA-Z]|$)", "i").test(String(sentence || ""));
@@ -661,6 +679,7 @@
     session.userAnswer = "";
     session.sentenceAnswer = "";
     session.correct = null;
+    session.dontKnow = null;
     if (session.index >= session.queue.length) session.completed = true;
     render(true);
   }
@@ -677,6 +696,7 @@
     session.userAnswer = "";
     session.sentenceAnswer = "";
     session.correct = null;
+    session.dontKnow = null;
     render(true);
   }
 
@@ -1029,6 +1049,7 @@ closure | 闭包；关闭" required></textarea>
     else if (action === "end-session") { ui.session = null; ui.route = "review"; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
     else if (action === "select-option") selectOption(button.dataset.index);
     else if (action === "rate-answer") rateAnswer(Number(button.dataset.rating));
+    else if (action === "dont-know") markDontKnow();
     else if (action === "skip-card") animateCard("left", () => nextCard(true));
     else if (action === "speak-current") { const word = currentWord(); if (word) speak(word.word, button); }
     else if (action === "speak-word") speak(button.dataset.word, button);

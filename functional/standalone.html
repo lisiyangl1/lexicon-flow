@@ -138,6 +138,14 @@ svg { display: block; }
 .primary-button { border: 1px solid var(--primary); background: var(--primary); color: #fff; box-shadow: 0 7px 16px rgba(82, 123, 105, .19); }
 .secondary-button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .danger-button { border: 1px solid var(--danger-soft); background: var(--danger-soft); color: var(--danger); }
+.dont-know-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 16px; border: 1.5px dashed var(--danger);
+  border-radius: 15px; background: transparent; color: var(--danger);
+  font-size: 14px; font-weight: 650;
+  transition: transform .16s, background .2s;
+}
+.dont-know-button:active { transform: scale(.975); background: var(--danger-soft); }
 .primary-button:active, .secondary-button:active, .danger-button:active, .icon-button:active, .quick-card:active, .word-row:active { transform: scale(.975); box-shadow: var(--shadow-pressed); }
 .full-width { width: 100%; }
 .button-row { display: flex; gap: 10px; }
@@ -766,6 +774,14 @@ svg { display: block; }
 .primary-button { border: none; background: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(0, 122, 255, .28); }
 .secondary-button { border: none; background: var(--surface-soft); color: var(--primary); }
 .danger-button { border: none; background: var(--danger-soft); color: var(--danger); }
+.dont-know-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 16px; border: 1.5px dashed var(--danger);
+  border-radius: 14px; background: transparent; color: var(--danger);
+  font-size: 15px; font-weight: 600;
+  transition: transform .22s var(--ease), background .2s, opacity .2s;
+}
+.dont-know-button:active { transform: scale(.96); opacity: .85; background: var(--danger-soft); }
 .primary-button:active, .secondary-button:active, .danger-button:active, .icon-button:active, .quick-card:active, .word-row:active {
   transform: scale(.96); opacity: .85; box-shadow: var(--shadow-pressed);
 }
@@ -2750,7 +2766,7 @@ window.VocabDict = { WORDS: [["a","/ə; eɪ/","art.","一(个)；每一(个)",""
         </article>
         ${session.phase === "feedback" && !session.correct ? renderAnswerCard(word, question) : ""}
       </div>
-      <div class="session-bottom">${session.phase === "question" ? '<button class="text-button full-width" type="button" data-action="skip-card">稍后再练 · 跳过此卡</button>' : renderRatingPanel(word)}</div>`;
+      <div class="session-bottom">${session.phase === "question" ? '<button class="dont-know-button full-width" type="button" data-action="dont-know">不知道这个词 · 记为答错并查看答案</button><button class="text-button full-width" type="button" data-action="skip-card">稍后再练 · 跳过此卡</button>' : renderRatingPanel(word)}</div>`;
   }
 
   function renderQuestionBody(word, question) {
@@ -2802,9 +2818,12 @@ window.VocabDict = { WORDS: [["a","/ə; eɪ/","art.","一(个)；每一(个)",""
 
   function renderFeedback(word, question) {
     const correct = ui.session.correct;
-    let detail = correct ? "回答正确。" : `正确答案：${question.correctAnswer || word.word}`;
+    const dontKnow = Boolean(ui.session.dontKnow);
+    const answer = question.correctAnswer || word.word;
+    let detail = correct ? "回答正确。" : dontKnow ? `已标记「不知道」，下次会尽快重现。正确答案：${answer}` : `正确答案：${answer}`;
     if (question.type === "sentence" && correct) detail = "句子已包含目标词且长度达标。建议再检查语法与搭配。";
-    return `<div class="feedback-banner ${correct ? "good" : "bad"}">${icon(correct ? "check" : "wrong")}<div><strong>${correct ? "回答正确" : "需要再巩固"}</strong><p>${e(detail)}</p></div></div>`;
+    const title = correct ? "回答正确" : dontKnow ? "标记为不知道" : "需要再巩固";
+    return `<div class="feedback-banner ${correct ? "good" : "bad"}">${icon(correct ? "check" : "wrong")}<div><strong>${title}</strong><p>${e(detail)}</p></div></div>`;
   }
 
   /** 答错时，在词卡下方另起一块“正确答案”词框。 */
@@ -2879,6 +2898,21 @@ window.VocabDict = { WORDS: [["a","/ə; eɪ/","art.","一(个)；每一(个)",""
     render(true);
   }
 
+  function markDontKnow() {
+    const session = ui.session;
+    if (!session || session.phase !== "question") return;
+    const question = getQuestion();
+    session.userAnswer = "";
+    session.sentenceAnswer = "";
+    session.selected = null;
+    session.correct = false;
+    session.dontKnow = true;
+    session.phase = "feedback";
+    session.results.wrong += 1;
+    if (["maintain", "sentence"].includes(question.type)) toast("产出题记为失败，该词将回炉输入线。");
+    render(true);
+  }
+
   function sentenceContainsWord(sentence, word) {
     const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     return new RegExp("(^|[^a-zA-Z])" + escaped + "([^a-zA-Z]|$)", "i").test(String(sentence || ""));
@@ -2918,6 +2952,7 @@ window.VocabDict = { WORDS: [["a","/ə; eɪ/","art.","一(个)；每一(个)",""
     session.userAnswer = "";
     session.sentenceAnswer = "";
     session.correct = null;
+    session.dontKnow = null;
     if (session.index >= session.queue.length) session.completed = true;
     render(true);
   }
@@ -2934,6 +2969,7 @@ window.VocabDict = { WORDS: [["a","/ə; eɪ/","art.","一(个)；每一(个)",""
     session.userAnswer = "";
     session.sentenceAnswer = "";
     session.correct = null;
+    session.dontKnow = null;
     render(true);
   }
 
@@ -3286,6 +3322,7 @@ closure | 闭包；关闭" required></textarea>
     else if (action === "end-session") { ui.session = null; ui.route = "review"; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
     else if (action === "select-option") selectOption(button.dataset.index);
     else if (action === "rate-answer") rateAnswer(Number(button.dataset.rating));
+    else if (action === "dont-know") markDontKnow();
     else if (action === "skip-card") animateCard("left", () => nextCard(true));
     else if (action === "speak-current") { const word = currentWord(); if (word) speak(word.word, button); }
     else if (action === "speak-word") speak(button.dataset.word, button);

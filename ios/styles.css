@@ -128,6 +128,14 @@ svg { display: block; }
 .primary-button { border: 1px solid var(--primary); background: var(--primary); color: #fff; box-shadow: 0 7px 16px rgba(82, 123, 105, .19); }
 .secondary-button { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .danger-button { border: 1px solid var(--danger-soft); background: var(--danger-soft); color: var(--danger); }
+.dont-know-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 16px; border: 1.5px dashed var(--danger);
+  border-radius: 15px; background: transparent; color: var(--danger);
+  font-size: 14px; font-weight: 650;
+  transition: transform .16s, background .2s;
+}
+.dont-know-button:active { transform: scale(.975); background: var(--danger-soft); }
 .primary-button:active, .secondary-button:active, .danger-button:active, .icon-button:active, .quick-card:active, .word-row:active { transform: scale(.975); box-shadow: var(--shadow-pressed); }
 .full-width { width: 100%; }
 .button-row { display: flex; gap: 10px; }

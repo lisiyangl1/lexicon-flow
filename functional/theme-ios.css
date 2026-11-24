@@ -136,6 +136,14 @@ svg { display: block; }
 .primary-button { border: none; background: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(0, 122, 255, .28); }
 .secondary-button { border: none; background: var(--surface-soft); color: var(--primary); }
 .danger-button { border: none; background: var(--danger-soft); color: var(--danger); }
+.dont-know-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 16px; border: 1.5px dashed var(--danger);
+  border-radius: 14px; background: transparent; color: var(--danger);
+  font-size: 15px; font-weight: 600;
+  transition: transform .22s var(--ease), background .2s, opacity .2s;
+}
+.dont-know-button:active { transform: scale(.96); opacity: .85; background: var(--danger-soft); }
 .primary-button:active, .secondary-button:active, .danger-button:active, .icon-button:active, .quick-card:active, .word-row:active {
   transform: scale(.96); opacity: .85; box-shadow: var(--shadow-pressed);
 }

@@ -2592,11 +2592,12 @@ window.VocabDict = { WORDS: [["a","/ə; eɪ/","art.","一(个)；每一(个)",""
     return Math.round(known / tokens.length * 100);
   }
 
-  function ctxBlock(word, context, mode) {
+  /** 语境材料块。hideCn=true 时隐藏中文翻译（识别题型需要防止翻译直接暴露词义）。 */
+  function ctxBlock(word, context, mode, hideCn) {
     const body = mode === "cloze" ? e(clozeContext(word, context)) : highlightContext(context.text, word);
     const coverage = coverageOf(context.text);
     const contexts = wordContexts(word);
-    return `<div class="ctx-sentence" aria-label="语境例句">${body}${context.cn ? `<p class="ctx-cn">${e(context.cn)}</p>` : ""}</div>
+    return `<div class="ctx-sentence" aria-label="语境例句">${body}${context.cn && !hideCn ? `<p class="ctx-cn">${e(context.cn)}</p>` : ""}</div>
       <div class="ctx-meta"><span class="badge">语境 ${context.index + 1}/${contexts.length}</span><span class="badge">已接触 ${(word.exposures || 0)} 次</span><span class="badge ${coverage >= 95 && coverage <= 98 ? "ok" : ""}">已知词覆盖 ${coverage}%</span></div>`;
   }
 
@@ -2731,7 +2732,7 @@ window.VocabDict = { WORDS: [["a","/ə; eɪ/","art.","一(个)；每一(个)",""
     let controls = "";
     if (question.type === "ctx-choice" || question.type === "ctx-judge") {
       prompt = `<div class="review-prompt"><p class="review-question">${question.type === "ctx-choice" ? "结合语境，选择目标词的含义" : "判断释义是否匹配当前语境"}</p></div>
-        ${question.context ? ctxBlock(word, question.context) : `<div class="ctx-sentence">${e(word.example || "暂无语境材料")}</div>`}
+        ${question.context ? ctxBlock(word, question.context, null, true) : `<div class="ctx-sentence">${e(word.example || "暂无语境材料")}</div>`}
         ${question.type === "ctx-judge" ? `<div class="answer-reveal"><strong>${e(question.proposedMeaning)}</strong></div>` : ""}`;
     } else if (question.type === "listen") {
       prompt = `<div class="review-prompt"><button class="listen-button" type="button" data-action="speak-current" aria-label="播放发音">${icon("volume")}</button><p class="review-question">听发音，选择对应释义</p></div>`;

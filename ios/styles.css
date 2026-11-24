@@ -250,6 +250,13 @@ svg { display: block; }
 .session-counter { color: var(--muted); font-size: 12px; }
 .swipe-hint { margin-bottom: 10px; color: var(--muted); font-size: 11px; text-align: center; }
 .review-stage { perspective: 1200px; touch-action: pan-y; }
+/* 训练会话进行中：整页滚动锁定，仅 .app-main 内部滚动，界面固定不上下漂移 */
+body.session-active { overflow: hidden; height: 100vh; height: 100dvh; }
+body.session-active .app-shell { height: 100vh; height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
+body.session-active .app-main {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
 .review-card {
   position: relative; min-height: 340px; padding: 23px 20px; border: 1px solid var(--line); border-radius: 25px;
   background: var(--surface); box-shadow: 0 12px 35px rgba(38,62,51,.09);

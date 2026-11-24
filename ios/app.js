@@ -127,6 +127,10 @@
     const views = { home: renderHome, library: renderLibrary, review: renderReview, stats: renderStats, profile: renderProfile };
     main.innerHTML = `<div class="page" data-page="${ui.route}">${views[ui.route]()}</div>`;
     if (preserveScroll) requestAnimationFrame(() => window.scrollTo(0, scrollY));
+    // 训练会话进行中锁定整页滚动（界面固定，卡片区域内滚动），防止手机上滑动页面时误触。
+    const sessionActive = Boolean(ui.session && !ui.session.completed);
+    document.body.classList.toggle("session-active", sessionActive);
+    if (sessionActive && !preserveScroll && main.scrollTo) main.scrollTo({ top: 0 });
   }
 
   function navigate(route) {
@@ -484,7 +488,7 @@
     return `
       <div class="session-top"><button class="icon-button" type="button" data-action="end-session" aria-label="退出本轮">${icon("close")}</button><div class="session-progress"><div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div></div><span class="session-counter">${session.index + 1} / ${session.queue.length}</span></div>
       ${ladderDots}
-      <p class="swipe-hint">${MODE_NAMES[session.mode]} · 轻滑卡片可跳过</p>
+      <p class="swipe-hint">${MODE_NAMES[session.mode]} · 左右轻滑可切换卡片</p>
       <div class="review-stage" id="review-stage">
         <article class="review-card ${feedbackClass}" id="review-card">
           <div class="review-type"><span>${TYPE_NAMES[question.type]}${isInput ? " · 输入线" : ` · 阶梯 ${question.step}/4`}</span><button class="icon-button soft" type="button" data-action="speak-current" aria-label="朗读单词">${icon("volume")}</button></div>
@@ -681,7 +685,7 @@
     session.correct = null;
     session.dontKnow = null;
     if (session.index >= session.queue.length) session.completed = true;
-    render(true);
+    render(false);
   }
 
   function previousCard() {
@@ -697,7 +701,7 @@
     session.sentenceAnswer = "";
     session.correct = null;
     session.dontKnow = null;
-    render(true);
+    render(false);
   }
 
   function animateCard(direction, callback) {
@@ -732,6 +736,7 @@
     return `
       <section class="card profile-card"><div class="profile-avatar">L</div><div><h2>我的词汇成长空间</h2><p>${Store.getState().words.filter(word => word.isBuiltin).length} 条内置核心词 · 数据仅保存在当前浏览器</p></div></section>
       <section class="section"><div class="section-heading"><h2>学习偏好</h2></div><div class="card settings-list">
+        ${settingRow("toggle-theme", "spark", "外观主题", `当前：${THEME_NAMES[document.documentElement.dataset.theme === "ios" ? "ios" : "green"]}，点击切换`)}
         ${settingRow("study-settings", "target", "学习目标与发音", `每日 ${settings.dailyGoal} 次 · 语速 ${settings.ttsRate}x`)}
         ${settingRow("ai-settings", "spark", "AI 拓展配置", settings.ai.endpoint ? "接口已配置" : "例句生成 · 造句批改 · 升级评估")}
       </div></section>
@@ -1115,12 +1120,20 @@ closure | 闭包；关闭" required></textarea>
     if (event.key === "Escape" && modalRoot.innerHTML) closeModal();
   });
 
-  // 触控手势：左右/上下轻滑切换；已评分卡片需先选择掌握程度。
+  // 触控手势：仅左右轻滑切换卡片（需明显横向位移且横向主导）；已评分卡片需先选择掌握程度。
   main.addEventListener("touchstart", event => {
     if (!event.target.closest("#review-stage") || !ui.session || ui.session.completed) return;
     const touch = event.changedTouches[0];
     ui.touch = { x: touch.clientX, y: touch.clientY };
   }, { passive: true });
+
+  // 一旦出现纵向滚动意图（上下滑动页面）立即取消手势，避免滑动页面被误判为翻卡。
+  main.addEventListener("touchmove", event => {
+    if (!ui.touch) return;
+    const touch = event.changedTouches[0];
+    if (Math.abs(touch.clientY - ui.touch.y) > Math.abs(touch.clientX - ui.touch.x) + 10) ui.touch = null;
+  }, { passive: true });
+  main.addEventListener("touchcancel", () => { ui.touch = null; }, { passive: true });
 
   main.addEventListener("touchend", event => {
     if (!ui.touch || !ui.session) return;
@@ -1128,15 +1141,10 @@ closure | 闭包；关闭" required></textarea>
     const dx = touch.clientX - ui.touch.x;
     const dy = touch.clientY - ui.touch.y;
     ui.touch = null;
-    if (Math.max(Math.abs(dx), Math.abs(dy)) < 48) return;
+    if (Math.abs(dx) < 90 || Math.abs(dx) < Math.abs(dy) * 2) return;
     if (ui.session.phase === "feedback") return toast("请先完成本题反馈，再切换卡片。 ");
-    if (Math.abs(dx) > Math.abs(dy)) {
-      if (dx < 0) animateCard("left", () => nextCard(true));
-      else animateCard("right", previousCard);
-    } else {
-      if (dy < 0) animateCard("up", () => nextCard(true));
-      else animateCard("right", previousCard);
-    }
+    if (dx < 0) animateCard("left", () => nextCard(true));
+    else animateCard("right", previousCard);
   }, { passive: true });
 
   function exportBackup() {

@@ -484,6 +484,32 @@
     }, null, 2);
   }
 
+  /** 导入完整备份 JSON，恢复学习进度、个人词汇、日志与设置（覆盖当前数据）。 */
+  function importBackup(text) {
+    let parsed;
+    try {
+      parsed = JSON.parse(String(text || ""));
+    } catch (error) {
+      throw new Error("备份文件不是有效的 JSON。 ");
+    }
+    if (!parsed || typeof parsed !== "object" || (!parsed.progress && !Array.isArray(parsed.userWords))) {
+      throw new Error("不是本应用导出的备份文件（缺少 progress/userWords 数据）。 ");
+    }
+    const settings = parsed.settings && typeof parsed.settings === "object"
+      ? Object.assign(defaultSettings(), parsed.settings)
+      : defaultSettings();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: 2,
+      progress: parsed.progress && typeof parsed.progress === "object" ? parsed.progress : {},
+      userWords: Array.isArray(parsed.userWords) ? parsed.userWords : [],
+      logs: Array.isArray(parsed.logs) ? parsed.logs : [],
+      settings,
+      createdAt: parsed.createdAt || new Date().toISOString()
+    }));
+    state = null;
+    return load();
+  }
+
   function updateSettings(changes) {
     state.settings = Object.assign({}, state.settings, changes);
     if (changes.ai) state.settings.ai = Object.assign({}, load().settings.ai, changes.ai);
@@ -592,6 +618,7 @@
     quickAdd,
     batchUpdate,
     exportData,
+    importBackup,
     updateSettings,
     reset,
     getStats,

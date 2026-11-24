@@ -223,6 +223,28 @@ for (let i = 0; i < 3; i++) {
   if (rateBtn) rateBtn.click(); else break;
 }
 step("INPUT_UI", () => JSON.stringify({ green: greenSeen, red: redSeen, answerCard: answerSeen, ctxMeta: ctxMetaSeen, coverage: coverageText }));
+
+/* ---- 导入备份 / 恢复进度（Store 级）：导出 → 重置 → 导入 → 进度恢复 ---- */
+step("IMPORT_BACKUP", () => {
+  const store = Store();
+  const exported = store.exportData();
+  const target = words().find(w => w.word === "abandon");
+  const before = { mastery: target.mastery, level: target.level, exposures: target.exposures };
+  const goalBefore = store.getState().settings.dailyGoal;
+  store.reset();
+  const afterReset = words().find(w => w.word === "abandon").mastery;
+  store.importBackup(exported);
+  const restored = words().find(w => w.word === "abandon");
+  const goalRestored = store.getState().settings.dailyGoal;
+  return JSON.stringify({
+    before: before.mastery,
+    afterReset,
+    restored: restored.mastery,
+    restoredLevel: restored.level,
+    restoredExposures: restored.exposures,
+    goal: goalBefore + "->" + goalRestored
+  });
+});
 step("ERRS_FINAL", () => window.__errs.join(";") || "(none)");
 
 console.log(out.join("\n"));

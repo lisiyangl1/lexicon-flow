@@ -132,7 +132,7 @@ node tools/merge-extras.mjs
 
 **快速添加**（词库页 → ＋ 快速添加）：每行 `单词 | 中文释义`，选择加入输入线（默认）或产出线；重复词跳过，释义必填。
 
-**备份导出**：我的 → 导出完整备份，生成 `lexicon-flow-backup-YYYY-MM-DD.json`，内容为 `{version:2, progress, userWords, logs, settings, createdAt, exportedAt}`。
+**备份导出与恢复**：我的 → 导出完整备份，生成 `lexicon-flow-backup-YYYY-MM-DD.json`，内容为 `{version:2, progress, userWords, logs, settings, createdAt, exportedAt}`。恢复进度：我的 → 导入备份/恢复进度，选择备份文件即可（会覆盖当前进度，导入前建议先导出一份当前数据）。
 
 ## 5. 输入与输出示例
 
@@ -236,7 +236,7 @@ ERRORS: (none)
 - **词库原始数据不在项目内**：`tools/build-dict.mjs` 需要 `CET4_*.json` / `CET6_*.json` 格式的 NDJSON，需通过第一个参数显式传入数据目录。缺少这些文件时无法从零重建 `words.js`；正常使用时无需重建，直接使用已生成的 `words.js` 即可。
 - **测试脚本依赖 jsdom**：`tools/e2e-test.cjs` 按「项目本地安装的 jsdom → `JSDOM_PATH` 环境变量指向的 node_modules 目录」顺序解析 jsdom；未安装时给出明确提示并退出。第一个参数可指定待测试的版本目录，省略时测试当前目录。
 - **构建脚本需在项目目录内运行**：`build-standalone.mjs` 用相对路径读取 `index.html`、CSS 与 JS，输出 `standalone.html`。
-- **存储隔离**：进度保存在 localStorage，`file://` 与 `http://` 互不共享；清理浏览器数据前须导出备份。
+- **存储隔离**：进度保存在 localStorage，`file://` 与 `http://` 互不共享；换浏览器或清理数据前先导出备份，之后可通过「导入备份/恢复进度」一键恢复。
 - **AI 功能为可选**：未配置接口时所有功能仍可离线使用；配置后密钥保存在本机前端，公开部署建议使用服务端代理。
 - **音标/释义来自上游数据源**：个别词条字段可能缺失（含音标 6638/6667、含同义词 6191/6667），属数据本身限制，应用不虚构补全。
 
